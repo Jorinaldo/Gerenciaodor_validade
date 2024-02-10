@@ -81,8 +81,11 @@ def filtrar_vencimentos():
     return produtos_vencendo_em_7_dias
 
 def obter_10_proximos_vencimentos():
-    produtos.sort(key=lambda x: datetime.strptime(x['data_vencimento'], '%d/%m/%Y'))
-    return produtos[:10]
+    if produtos:
+        produtos.sort(key=lambda x: datetime.strptime(x['data_vencimento'], '%d/%m/%Y'))
+        return produtos[:10]
+    else:
+        return []
 
 def exibir_alerta():
     proximos_vencimentos = obter_10_proximos_vencimentos()
@@ -141,6 +144,16 @@ def salvar_dados():
 root = tk.Tk()
 root.title("Gerenciador de Produtos")
 
+# Carregar ou criar dados ao iniciar o programa
+try:
+    with open('dados_produtos.json', 'r') as file:
+        produtos = json.load(file)
+except FileNotFoundError:
+    produtos = []
+
+# Exibir alerta ao iniciar o programa
+exibir_alerta()
+
 # Widgets
 label_nome = tk.Label(root, text="Nome:")
 label_marca = tk.Label(root, text="Marca:")
@@ -173,18 +186,8 @@ botao_desfazer.grid(row=5, column=2, columnspan=2)
 botao_alerta.grid(row=6, column=0, columnspan=2)
 lista_produtos.grid(row=7, column=0, columnspan=4)  # Ajuste de coluna aqui
 
-# Carregar ou criar dados ao iniciar o programa
-try:
-    with open('dados_produtos.json', 'r') as file:
-        produtos = json.load(file)
-except FileNotFoundError:
-    produtos = []
-
 # Atualizar a lista ao iniciar o programa
 atualizar_lista()
-
-# Exibir alerta ao iniciar o programa
-exibir_alerta()
 
 # Configurações da janela
 largura_janela = 1000  # Ajuste de largura aqui
