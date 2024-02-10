@@ -48,20 +48,18 @@ def desfazer_adicao():
     else:
         messagebox.showinfo("Desfazer Adição", "Nenhum produto para desfazer.")
 
-def remover_produto(index):
-    if messagebox.askyesno("Confirmar Exclusão", "Deseja realmente excluir este produto?"):
-        del produtos[index]
+def remover_produto(indice):
+    produto = produtos[indice]
+    resposta = messagebox.askokcancel("Confirmação", f"Deseja realmente remover o produto '{produto['nome']}'?")
+    if resposta:
+        del produtos[indice]
         salvar_dados()
         atualizar_lista()
 
 def selecionar_produto(index):
     global indice_selecionado
     indice_selecionado = index
-    for i in range(len(produtos)):
-        cor_destaque = 'lightgrey' if i == index else 'white'
-        lista_produtos.tag_configure(f'linha{i}', background=cor_destaque)
-
-    lista_produtos.tag_add('selecionado', f'{index + 1}.0', f'{index + 1}.end')
+    atualizar_lista()
 
 def calcular_dias_faltantes(data_vencimento):
     hoje = datetime.now()
@@ -130,19 +128,14 @@ def atualizar_lista():
                                         f"Quantidade: {quantidade}, Adicionado em: {data_adicao}, "
                                         f"Dias faltantes: {dias_faltantes} dias  ")
 
-        # Verifica se o botão "Remover" já foi criado para este produto
-        if not lista_produtos.tag_ranges(f'botao_remover_{i}'):
-            botao_remover = tk.Button(root, text="Remover", command=lambda i=i: remover_produto(i))
-            botao_remover.grid(row=i + 7, column=3)
-            lista_produtos.window_create(f'{i + 7}.end', window=botao_remover)
+        # Adiciona o botão "Remover" para o produto atual
+        botao_remover = tk.Button(root, text="Remover", command=lambda i=i: remover_produto(i))
+        lista_produtos.window_create(tk.END, window=botao_remover)
+        lista_produtos.insert(tk.END, "\n")  # Adiciona uma quebra de linha
 
-        lista_produtos.tag_configure(f'linha{i}', background='white')
-
-        # Adicionar a tag à linha atual
-        lista_produtos.tag_add(f'linha{i}', f'{i + 7}.0', f'{i + 7}.end')
-
-        # Associar a função de seleção ao clique na linha
-        lista_produtos.tag_bind(f'linha{i}', '<Button-1>', lambda event, i=i: selecionar_produto(i))
+def salvar_dados():
+    with open('dados_produtos.json', 'w') as file:
+        json.dump(produtos, file)
 
 # Configuração da interface gráfica
 root = tk.Tk()
