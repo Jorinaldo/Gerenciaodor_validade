@@ -48,11 +48,19 @@ def desfazer_adicao():
     else:
         messagebox.showinfo("Desfazer Adição", "Nenhum produto para desfazer.")
 
-def remover_produto(indice):
+def remover_produto_parcialmente(indice):
     produto = produtos[indice]
-    resposta = messagebox.askokcancel("Confirmação", f"Deseja realmente remover o produto '{produto['nome']}'?")
+    quantidade_remover = int(entry_quantidade_remover.get())
+
+    if quantidade_remover <= 0 or quantidade_remover > produto['quantidade']:
+        messagebox.showerror("Erro", "Quantidade inválida para remoção.")
+        return
+
+    resposta = messagebox.askokcancel("Confirmação", f"Deseja realmente remover {quantidade_remover} unidades do produto '{produto['nome']}'?")
     if resposta:
-        del produtos[indice]
+        produto['quantidade'] -= quantidade_remover
+        if produto['quantidade'] == 0:
+            del produtos[indice]
         salvar_dados()
         atualizar_lista()
 
@@ -132,7 +140,7 @@ def atualizar_lista():
                                         f"Dias faltantes: {dias_faltantes} dias  ")
 
         # Adiciona o botão "Remover" para o produto atual
-        botao_remover = tk.Button(root, text="Remover", command=lambda i=i: remover_produto(i))
+        botao_remover = tk.Button(root, text="Remover Parcialmente", command=lambda i=i: remover_produto_parcialmente(i))
         lista_produtos.window_create(tk.END, window=botao_remover)
         lista_produtos.insert(tk.END, "\n")  # Adiciona uma quebra de linha
 
@@ -159,11 +167,13 @@ label_nome = tk.Label(root, text="Nome:")
 label_marca = tk.Label(root, text="Marca:")
 label_data = tk.Label(root, text="Data de Vencimento:")
 label_quantidade = tk.Label(root, text="Quantidade:")
+label_quantidade_remover = tk.Label(root, text="Quantidade a Remover:")  # Novo campo
 
 entry_nome = tk.Entry(root)
 entry_marca = tk.Entry(root)
 entry_data = tk.Entry(root)
 entry_quantidade = tk.Entry(root)
+entry_quantidade_remover = tk.Entry(root)  # Novo campo
 
 botao_adicionar = tk.Button(root, text="Adicionar Produto", command=adicionar_produto)
 botao_desfazer = tk.Button(root, text="Desfazer Adição", command=desfazer_adicao)
@@ -175,16 +185,18 @@ label_nome.grid(row=1, column=0, sticky=tk.W)
 label_marca.grid(row=2, column=0, sticky=tk.W)
 label_data.grid(row=3, column=0, sticky=tk.W)
 label_quantidade.grid(row=4, column=0, sticky=tk.W)
+label_quantidade_remover.grid(row=5, column=0, sticky=tk.W)  # Novo campo
 
 entry_nome.grid(row=1, column=1)
 entry_marca.grid(row=2, column=1)
 entry_data.grid(row=3, column=1)
 entry_quantidade.grid(row=4, column=1)
+entry_quantidade_remover.grid(row=5, column=1)  # Novo campo
 
-botao_adicionar.grid(row=5, column=0, columnspan=2)
-botao_desfazer.grid(row=5, column=2, columnspan=2)
-botao_alerta.grid(row=6, column=0, columnspan=2)
-lista_produtos.grid(row=7, column=0, columnspan=4)  # Ajuste de coluna aqui
+botao_adicionar.grid(row=6, column=0, columnspan=2)
+botao_desfazer.grid(row=6, column=2, columnspan=2)
+botao_alerta.grid(row=7, column=0, columnspan=2)
+lista_produtos.grid(row=8, column=0, columnspan=4)  # Ajuste de coluna aqui
 
 # Atualizar a lista ao iniciar o programa
 atualizar_lista()
