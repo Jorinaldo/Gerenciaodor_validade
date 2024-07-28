@@ -1,10 +1,10 @@
 import tkinter as tk
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 from tkinter import messagebox
 
-# Variável global para armazenar o índice do produto selecionado
-indice_selecionado = None
+# Variável global para armazenar os produtos
+produtos = []
 
 def adicionar_produto():
     nome = entry_nome.get()
@@ -48,9 +48,8 @@ def desfazer_adicao():
     else:
         messagebox.showinfo("Desfazer Adição", "Nenhum produto para desfazer.")
 
-def remover_produto_parcialmente(indice):
+def remover_produto_parcialmente(indice, quantidade_remover):
     produto = produtos[indice]
-    quantidade_remover = int(entry_quantidade_remover.get())
 
     if quantidade_remover <= 0 or quantidade_remover > produto['quantidade']:
         messagebox.showerror("Erro", "Quantidade inválida para remoção.")
@@ -63,11 +62,6 @@ def remover_produto_parcialmente(indice):
             del produtos[indice]
         salvar_dados()
         atualizar_lista()
-
-def selecionar_produto(index):
-    global indice_selecionado
-    indice_selecionado = index
-    atualizar_lista()
 
 def calcular_dias_faltantes(data_vencimento):
     hoje = datetime.now()
@@ -105,7 +99,10 @@ def exibir_alerta():
         texto_alerta = tk.Label(alerta, text="Atenção! Os seguintes produtos estão próximos ao vencimento:")
         texto_alerta.pack()
 
-        for produto in proximos_vencimentos:
+        lista_vencimentos = tk.Listbox(alerta, selectmode=tk.SINGLE, width=100)  # Aumentar largura aqui
+        lista_vencimentos.pack()
+
+        for i, produto in enumerate(proximos_vencimentos):
             nome = produto['nome']
             marca = produto['marca']
             data_vencimento = produto['data_vencimento']
@@ -114,10 +111,29 @@ def exibir_alerta():
 
             cor_destaque = 'red' if dias_faltantes <= 7 else 'black'
 
-            label_produto = tk.Label(alerta, text=f"Nome: {nome}, Marca: {marca}, Vencimento: {data_vencimento}, "
-                                                  f"Quantidade: {quantidade}, Dias faltantes: {dias_faltantes} dias",
-                                     fg=cor_destaque)
-            label_produto.pack()
+            lista_vencimentos.insert(tk.END, f"Nome: {nome}, Marca: {marca}, Vencimento: {data_vencimento}, "
+                                             f"Quantidade: {quantidade}, Dias faltantes: {dias_faltantes} dias")
+            lista_vencimentos.itemconfig(i, {'fg': cor_destaque})
+
+        quantidade_label = tk.Label(alerta, text="Quantidade a remover:")
+        quantidade_label.pack()
+        quantidade_entry = tk.Entry(alerta)
+        quantidade_entry.pack()
+
+        def remover_selecionado():
+            selecionado = lista_vencimentos.curselection()
+            if selecionado:
+                indice = proximos_vencimentos[selecionado[0]]
+                quantidade_remover = int(quantidade_entry.get())
+                remover_produto_parcialmente(produtos.index(indice), quantidade_remover)
+                alerta.destroy()
+                exibir_alerta()
+            else:
+                messagebox.showerror("Erro", "Selecione um produto para remover.")
+
+        botao_remover = tk.Button(alerta, text="Remover", command=remover_selecionado)
+        botao_remover.pack()
+
     else:
         messagebox.showinfo("Nenhum produto próximo ao vencimento", "Não há produtos próximos ao vencimento.")
 
@@ -137,27 +153,26 @@ def atualizar_lista():
 
         lista_produtos.insert(tk.END, f"Nome: {nome}, Marca: {marca}, Vencimento: {data_vencimento}, "
                                         f"Quantidade: {quantidade}, Adicionado em: {data_adicao}, "
-                                        f"Dias faltantes: {dias_faltantes} dias  ")
-
-        # Adiciona o botão "Remover" para o produto atual
-        botao_remover = tk.Button(root, text="Remover Parcialmente", command=lambda i=i: remover_produto_parcialmente(i))
-        lista_produtos.window_create(tk.END, window=botao_remover)
-        lista_produtos.insert(tk.END, "\n")  # Adiciona uma quebra de linha
+                                        f"Dias faltantes: {dias_faltantes} dias\n")
 
 def salvar_dados():
     with open('dados_produtos.json', 'w') as file:
         json.dump(produtos, file)
 
+def carregar_dados():
+    global produtos
+    try:
+        with open('dados_produtos.json', 'r') as file:
+            produtos = json.load(file)
+    except FileNotFoundError:
+        produtos = []
+
 # Configuração da interface gráfica
 root = tk.Tk()
 root.title("Gerenciador de Produtos")
 
-# Carregar ou criar dados ao iniciar o programa
-try:
-    with open('dados_produtos.json', 'r') as file:
-        produtos = json.load(file)
-except FileNotFoundError:
-    produtos = []
+# Carregar dados ao iniciar o programa
+carregar_dados()
 
 # Exibir alerta ao iniciar o programa
 exibir_alerta()
@@ -167,13 +182,11 @@ label_nome = tk.Label(root, text="Nome:")
 label_marca = tk.Label(root, text="Marca:")
 label_data = tk.Label(root, text="Data de Vencimento:")
 label_quantidade = tk.Label(root, text="Quantidade:")
-label_quantidade_remover = tk.Label(root, text="Quantidade a Remover:")  # Novo campo
 
 entry_nome = tk.Entry(root)
 entry_marca = tk.Entry(root)
 entry_data = tk.Entry(root)
 entry_quantidade = tk.Entry(root)
-entry_quantidade_remover = tk.Entry(root)  # Novo campo
 
 botao_adicionar = tk.Button(root, text="Adicionar Produto", command=adicionar_produto)
 botao_desfazer = tk.Button(root, text="Desfazer Adição", command=desfazer_adicao)
@@ -185,18 +198,16 @@ label_nome.grid(row=1, column=0, sticky=tk.W)
 label_marca.grid(row=2, column=0, sticky=tk.W)
 label_data.grid(row=3, column=0, sticky=tk.W)
 label_quantidade.grid(row=4, column=0, sticky=tk.W)
-label_quantidade_remover.grid(row=5, column=0, sticky=tk.W)  # Novo campo
 
 entry_nome.grid(row=1, column=1)
 entry_marca.grid(row=2, column=1)
 entry_data.grid(row=3, column=1)
 entry_quantidade.grid(row=4, column=1)
-entry_quantidade_remover.grid(row=5, column=1)  # Novo campo
 
-botao_adicionar.grid(row=6, column=0, columnspan=2)
-botao_desfazer.grid(row=6, column=2, columnspan=2)
-botao_alerta.grid(row=7, column=0, columnspan=2)
-lista_produtos.grid(row=8, column=0, columnspan=4)  # Ajuste de coluna aqui
+botao_adicionar.grid(row=5, column=0, columnspan=2)
+botao_desfazer.grid(row=5, column=2, columnspan=2)
+botao_alerta.grid(row=6, column=0, columnspan=2)
+lista_produtos.grid(row=7, column=0, columnspan=4)  # Ajuste de coluna aqui
 
 # Atualizar a lista ao iniciar o programa
 atualizar_lista()
